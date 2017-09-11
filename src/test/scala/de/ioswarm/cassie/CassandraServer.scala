@@ -1,4 +1,4 @@
-package ioswarm.cassie
+package de.ioswarm.cassie
 
 import org.cassandraunit.utils.EmbeddedCassandraServerHelper
 import org.scalatest.{BeforeAndAfterAll, Suite}
