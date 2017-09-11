@@ -1,0 +1,59 @@
+package de.ioswarm.cassie
+
+import de.ioswarm.cassie.Cluster.Connection
+
+/**
+  * Created by andreas on 27.08.17.
+  */
+object Table {
+
+  [#def apply[[#T1#],K](keyspace: String, name: String, fin: Function1[[#T1#], K], fout: Function##1[K, Option[Tuple1[[#T1#]]]])([#column1: Column#])(implicit [#cf1: CassandraFormat[T1]#]): Table[K] = new Table1(keyspace, name, fin, fout)([#column1#])([#cf1#])#
+  ]
+
+}
+trait Table[K] extends Result[K] with Term[K] {
+    def keyspace: String
+    def name: String
+
+    def qualifiedName: String = keyspace+"."+name
+
+    def columns: Seq[Column]
+
+    def partitionKeys: Seq[Column] = {
+      val pret = columns.filter(c => c.partitionKey)
+      if (pret.nonEmpty) pret else Seq(columns.head)
+    }
+
+    def clusteringColumns: Seq[Column] = columns.filter(c => c.clustering)
+
+    def indexedColumns: Seq[Column] = columns.filter(c => c.indexes.nonEmpty)
+
+    def primaryColumns: Seq[Column] = columns.filter(c => c.clustering || c.partitionKey)
+
+    def valueColumns: Seq[Column] = columns.filter(c => !c.clustering && !c.partitionKey)
+
+    def orderedColumns: Seq[Column] = columns.filter(c => c.clusteringOrder != NONE)
+
+    def create(implicit connection: Connection): Table[K]
+}
+
+[#class Table1[[#T1#], K](val keyspace: String, val name: String, fin: Function1[[#T1#], K], fout: Function##1[K, Option[Tuple1[[#T1#]]]])([#column1: Column#])(implicit [#cf1: CassandraFormat[T1]#]) extends Table[K] {
+
+  override def columns: Seq[Column] = Seq([#column1.as[T1]#])
+
+  override def apply(gettable: Gettable): K = fin([#cf1.read(column1.name, gettable)#])
+
+  override def apply(value: K, settable: Settable): Settable = fout(value) match {
+    case Some(t) =>
+      [#cf1.write(column1.name, t._1, settable)#
+      ]
+    case None => settable
+  }
+
+  def create(implicit connection: Connection): Table[K] = {
+    TableStatement(None)(this).create(connection)
+    this
+  }
+
+}#
+]

@@ -1,0 +1,24 @@
+package de.ioswarm.cassie
+
+/**
+  * Created by andreas on 27.08.17.
+  */
+object Result {
+  def apply[T](implicit f: QueryReader[T]) = new Result[T] { def apply(g: Gettable): T = f(g) }
+
+  [#def apply[[#T1#], K](fin: Function1[[#T1#], K])([#column1: Column#])(implicit [#r1: Reader[T1]#]): Result[K] = new Result1(fin)([#column1#])([#r1#])#
+  ]
+
+}
+trait Result[+T] extends QueryReader[T] { self =>
+
+  override def andThen[A](g: (T) => A): QueryReader[A] = new Result[A] { def apply(v1: Gettable): A = g(self.apply(v1)) }
+
+}
+
+[#class Result1[[#T1#], K](fin: Function1[[#T1#], K])([#column1: Column#])(implicit [#r1: Reader[T1]#]) extends Result[K] {
+
+  override def apply(gettable: Gettable): K = fin([#r1.read(column1.name, gettable)#])
+
+}#
+]

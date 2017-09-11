@@ -1,0 +1,96 @@
+package de.ioswarm.cassie
+
+import de.ioswarm.cassie.Cluster.Connection
+
+import java.nio.ByteBuffer
+
+import com.datastax.driver.core.{ProtocolVersion, TypeCodec, UDTValue, UserType}
+import com.google.common.reflect.TypeToken
+
+import scala.reflect.ClassTag
+
+/**
+  * Created by andreas on 03.09.17.
+  */
+object Type {
+
+  [#def apply[[#T1#], K](keyspace: String, name: String, fin: Function1[[#T1#], K], fout: Function##1[K, Option[Tuple1[[#T1#]]]])([#column1: Column#])(implicit ct: ClassTag[K], [#cf1: CassandraFormat[T1]#]): Type[K] = new Type1(keyspace, name, fin, fout)([#column1#])(ct, [#cf1#])#
+  ]
+
+}
+
+trait Type[K] extends CassandraFormat[K] {
+  def keyspace: String
+  def name: String
+
+  def qualifiedName: String = keyspace+"."+name
+
+  def columns: Seq[Column]
+
+  override def customType: Boolean = true
+  override def cqlType: String = "<"+qualifiedName+">"
+
+
+
+  protected def innerCodec: TypeCodec[UDTValue] = Cluster.typeCodec(keyspace, name)
+  def userType: UserType = innerCodec.getCqlType.asInstanceOf[UserType]
+
+  def toValue(udt: UDTValue): K
+  def fromValue(value: K): UDTValue
+
+  def create(implicit connection: Connection): Type[K]
+}
+
+[#class Type1[[#T1#], K](val keyspace: String, val name: String, fin: Function1[[#T1#], K], fout: Function##1[K, Option[Tuple1[[#T1#]]]])([#column1: Column#])(implicit ct: ClassTag[K], [#cf1: CassandraFormat[T1]#]) extends Type[K] {
+
+  protected val codec = new TypeCodec[K](innerCodec.getCqlType, ct.runtimeClass.asInstanceOf[Class[K]]) {
+    override def format(value: K): String = Option(value) match {
+      case Some(k) => innerCodec.format(fromValue(k))
+      case None => null
+    }
+
+    override def parse(value: String): K = if (value == null || value.isEmpty) null.asInstanceOf[K] else toValue(innerCodec.parse(value))
+
+    override def serialize(value: K, protocolVersion: ProtocolVersion): ByteBuffer = innerCodec.serialize(fromValue(value), protocolVersion)
+
+    override def deserialize(bytes: ByteBuffer, protocolVersion: ProtocolVersion): K = toValue(innerCodec.deserialize(bytes, protocolVersion))
+  }
+
+  Cluster.registerType(codec)
+
+  def columns: Seq[Column] = Seq([#column1.as[T1](cf1)#])
+
+  override def toCql(t: K): String = fout(t) match {
+    case Some(tpl) => Seq([#column1.name+" : "+cf1.toCql(tpl._1)#]).mkString("{ ", ", ", " }")
+    case None => "null"
+  }
+
+  override def write(name: String, t: K, stmt: Settable): Settable = stmt.set(name, t, TypeToken.of(ct.runtimeClass.asInstanceOf[Class[K]]))
+
+  override def write(index: Int, t: K, stmt: Settable): Settable = stmt.set(index, t, TypeToken.of(ct.runtimeClass.asInstanceOf[Class[K]]))
+
+  override def read(index: Int, stmt: Gettable): K = stmt.get(index, TypeToken.of(ct.runtimeClass.asInstanceOf[Class[K]]))
+
+  override def read(name: String, stmt: Gettable): K = stmt.get(name, TypeToken.of(ct.runtimeClass.asInstanceOf[Class[K]]))
+
+  def toValue(udt: UDTValue): K = fin([#cf1.read(column1.name, Gettable(udt))#])
+
+  def fromValue(value: K): UDTValue = {
+    val udt = userType.newValue()
+    val stmt = Settable(udt)
+    fout(value) match {
+      case Some(tpl) =>
+        [#cf1.write(column1.name, tpl._1, stmt)#
+        ]
+      case None =>
+    }
+    udt
+  }
+
+  def create(implicit connection: Connection): Type[K] = {
+    TypeBuilder()(this).create(connection)
+    this
+  }
+
+}#
+]

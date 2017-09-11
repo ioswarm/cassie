@@ -1,0 +1,15 @@
+package de.ioswarm.cassie;
+
+/**
+  * Created by andreas on 26.08.17.
+  */
+trait CassandraTupleFormats extends CassandraCollectionFormats {
+/*
+  [#implicit def tuple1Format[[#T1#]](implicit [#f1: CassandraFormat[T1]#]) = new CassandraTupleFormat[Tuple1[[#T1#]]] {
+    override def toCql(t: Tuple1[[#T1#]]): String = Seq([#f1.toCql(t._1)#]).mkString("(", ", ", ")")
+
+    override def cqlType: String = Seq([#f1.cqlType#]).mkString("tuple<", ", ", ">")
+  }#
+  ]
+*/
+}

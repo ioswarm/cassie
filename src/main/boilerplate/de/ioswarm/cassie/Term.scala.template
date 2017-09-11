@@ -1,0 +1,29 @@
+package de.ioswarm.cassie
+
+/**
+  * Created by andreas on 28.08.17.
+  */
+object Term {
+  def apply[T](implicit f: QueryWriter[T]): Term[T] = new Term[T]{
+    override def apply(v1: T, v2: Settable): Settable = f(v1, v2)
+  }
+
+  [#def apply[[#T1#], K](fout: Function##1[K, Option[Tuple1[[#T1#]]]])([#column1: Column#])(implicit [#w1: Writer[T1]#]): Term[K] = new Term1(fout)([#column1#])([#w1#])#
+  ]
+
+}
+trait Term[T] extends QueryWriter[T] {
+
+}
+
+[#class Term1[[#T1#], K](fout: Function##1[K, Option[Tuple1[[#T1#]]]])([#column1: Column#])(implicit [#w1: Writer[T1]#]) extends Term[K] {
+
+  override def apply(value: K, settable: Settable): Settable = fout(value) match {
+    case Some(t) =>
+      [#w1.write(column1.name, t._1, settable)#
+      ]
+    case None => settable
+  }
+
+}#
+]
