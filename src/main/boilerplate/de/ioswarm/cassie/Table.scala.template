@@ -34,7 +34,7 @@ trait Table[K] extends Result[K] with Term[K] {
 
     def orderedColumns: Seq[Column] = columns.filter(c => c.clusteringOrder != NONE)
 
-    def create(implicit connection: Connection): Table[K]
+    def create: Table[K]
 }
 
 [#class Table1[[#T1#], K](val keyspace: String, val name: String, fin: Function1[[#T1#], K], fout: Function##1[K, Option[Tuple1[[#T1#]]]])([#column1: Column#])(implicit [#cf1: CassandraFormat[T1]#]) extends Table[K] {
@@ -50,8 +50,8 @@ trait Table[K] extends Result[K] with Term[K] {
     case None => settable
   }
 
-  def create(implicit connection: Connection): Table[K] = {
-    TableStatement(None)(this).create(connection)
+  def create: Table[K] = {
+    TableStatement(None)(this).create(Cluster())
     this
   }
 

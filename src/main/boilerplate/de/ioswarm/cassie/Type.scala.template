@@ -38,7 +38,7 @@ trait Type[K] extends CassandraFormat[K] {
   def toValue(udt: UDTValue): K
   def fromValue(value: K): UDTValue
 
-  def create(implicit connection: Connection): Type[K]
+  def create: Type[K]
 }
 
 [#class Type1[[#T1#], K](val keyspace: String, val name: String, fin: Function1[[#T1#], K], fout: Function##1[K, Option[Tuple1[[#T1#]]]])([#column1: Column#])(implicit ct: ClassTag[K], [#cf1: CassandraFormat[T1]#]) extends Type[K] {
@@ -87,8 +87,8 @@ trait Type[K] extends CassandraFormat[K] {
     udt
   }
 
-  def create(implicit connection: Connection): Type[K] = {
-    TypeBuilder()(this).create(connection)
+  def create: Type[K] = {
+    TypeBuilder()(this).create(Cluster())
     this
   }
 
