@@ -4,7 +4,10 @@ import java.net.InetAddress
 import java.nio.ByteBuffer
 import java.sql.{Time, Timestamp, Date => SQLDate}
 import java.text.SimpleDateFormat
+import java.time.ZoneId
 import java.util.{Date, UUID}
+
+import com.datastax.driver.core.LocalDate
 
 /**
   * Created by andreas on 24.08.17.
@@ -163,25 +166,25 @@ trait CassandraBasicFormats {
   implicit def dateFormat = new CassandraBasicFormat[Date]("date") {
     override def toCql(t: Date): String = new SimpleDateFormat("yyyy-MM-dd").format(t)
 
-    override def read(index: Int, stmt: Gettable): Date = stmt.getTimestamp(index)
+    override def read(index: Int, stmt: Gettable): Date = new Date(stmt.getDate(index).getMillisSinceEpoch)
 
-    override def read(name: String, stmt: Gettable): Date = stmt.getTimestamp(name)
+    override def read(name: String, stmt: Gettable): Date = new Date(stmt.getDate(name).getMillisSinceEpoch)
 
-    override def write(name: String, t: Date, stmt: Settable): Settable = stmt.setTimestamp(name, t)
+    override def write(name: String, t: Date, stmt: Settable): Settable = stmt.setDate(name, LocalDate.fromMillisSinceEpoch(t.getTime))
 
-    override def write(index: Int, t: Date, stmt: Settable): Settable = stmt.setTimestamp(index, t)
+    override def write(index: Int, t: Date, stmt: Settable): Settable = stmt.setDate(index, LocalDate.fromMillisSinceEpoch(t.getTime))
   }
 
   implicit def sqldateformat = new CassandraBasicFormat[SQLDate]("date") {
     override def toCql(t: SQLDate): String = new SimpleDateFormat("yyyy-MM-dd").format(t)
 
-    override def read(index: Int, stmt: Gettable): SQLDate = new SQLDate(stmt.getTimestamp(index).getTime)
+    override def read(index: Int, stmt: Gettable): SQLDate = new SQLDate(stmt.getDate(index).getMillisSinceEpoch)
 
-    override def read(name: String, stmt: Gettable): SQLDate = new SQLDate(stmt.getTimestamp(name).getTime)
+    override def read(name: String, stmt: Gettable): SQLDate = new SQLDate(stmt.getDate(name).getMillisSinceEpoch)
 
-    override def write(name: String, t: SQLDate, stmt: Settable): Settable = stmt.setTimestamp(name, new Date(t.getTime))
+    override def write(name: String, t: SQLDate, stmt: Settable): Settable = stmt.setDate(name, LocalDate.fromMillisSinceEpoch(t.getTime))
 
-    override def write(index: Int, t: SQLDate, stmt: Settable): Settable = stmt.setTimestamp(index, new Date(t.getTime))
+    override def write(index: Int, t: SQLDate, stmt: Settable): Settable = stmt.setDate(index, LocalDate.fromMillisSinceEpoch(t.getTime))
   }
 
   implicit def doubleFormat = new CassandraBasicFormat[Double]("double") {

@@ -2,14 +2,14 @@ import spray.boilerplate.BoilerplatePlugin._
 
 name := """cassie"""
 
-organization := "ioswarm"
+organization := "de.ioswarm"
 
 version := "0.2.0"
 
 scalaVersion := "2.11.11"
 
 scalacOptions ++= Seq(
-  "-feature",
+//  "-feature",
   "-language:_",
   "-unchecked",
   "-deprecation",
