@@ -23,10 +23,10 @@ package object cassie extends CassandraFormats {
   }
 
   implicit class ExtendProducts[T <: Product](t: T) {
-    def insert(implicit connection: Connection, tbl: Table[T]): Unit = table(tbl).insert(t)(connection)
-    def update(implicit connection: Connection, tbl: Table[T]): Unit = table(tbl).update(t)(connection)
-    def upsert(implicit connection: Connection, tbl: Table[T]): Unit = table(tbl).upsert(t)(connection)
-    def delete(implicit connection: Connection, tbl: Table[T]): Unit = table(tbl).delete(t)(connection)
+    def insert(implicit connection: Connection, tbl: Table[T]): T = table(tbl).insert(t)(connection).head
+    def update(implicit connection: Connection, tbl: Table[T]): T = table(tbl).update(t)(connection).head
+    def upsert(implicit connection: Connection, tbl: Table[T]): T = table(tbl).upsert(t)(connection).head
+    def delete(implicit connection: Connection, tbl: Table[T]): T = table(tbl).delete(t)(connection).head
   }
 
   implicit class ExtendIntClass(i: Int) {
@@ -103,6 +103,8 @@ package object cassie extends CassandraFormats {
     )(cf)
   }
 
+  implicit def stringToColumn(s: String): Column = ColumnDef(s)
+
   def from[K](implicit ct: ClassTag[K]): TypedSelectStatement[K] = StatementBuilder.from(ct)
 
   def from[K](from: String)(implicit ct: ClassTag[K]): TypedSelectStatement[K] = StatementBuilder.from(from)(ct)
@@ -112,5 +114,7 @@ package object cassie extends CassandraFormats {
 
   def table[T](implicit tbl: Table[T]): TableStatement[T] = StatementBuilder.table(tbl)
 
+
+  def keyspace(keyspace: String): KeyspaceBuilder = StatementBuilder.keyspace(keyspace)
 
 }

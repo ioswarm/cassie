@@ -42,6 +42,8 @@ object StatementBuilder {
 
 
   def table[T](implicit tbl: Table[T]): TableStatement[T] = TableStatement(None)(tbl)
+
+  def keyspace(keyspace: String): KeyspaceBuilder = KeyspaceBuilder(keyspace)
 }
 
 case class SelectStatement(keyspace: Option[String], table: String, columns: Seq[Column], condition: Option[TerminationCondition]) {
@@ -226,5 +228,43 @@ private[cassie] case class TypeBuilder[T]()(implicit tpe: Type[T]) {
   def create(implicit connection: Connection): Unit = connection.execute(cqlCreate)
 
   def drop(implicit connection: Connection): Unit = connection.execute(cqlDrop)
+
+}
+
+case class KeyspaceBuilder(keyspace: String
+                           , durableWrites: Boolean = true
+                           , replication: Map[String, String] = Map(
+  "class" -> "SimpleStrategy"
+  , "replication_factor" -> "3")) {
+
+  def durableWrites(b: Boolean): KeyspaceBuilder = copy(durableWrites = b)
+
+  def simpleStrategy(replicationFactor: Int): KeyspaceBuilder = copy(replication = Map(
+    "class" -> "SimpleStrategy"
+    , "replication_factor" -> replicationFactor.toString
+  ))
+
+  def simple(replicationFactor: Int): KeyspaceBuilder = simpleStrategy(replicationFactor)
+
+  def networkTopologyStrategy(dataCenter: (String, Int)*): KeyspaceBuilder = copy(
+    replication = dataCenter.map(t => t._1 -> t._2.toString).toMap + ("class" -> "NetworkTopologyStrategy")
+  )
+  def network(dataCenter: (String, Int)*): KeyspaceBuilder = networkTopologyStrategy(dataCenter :_*)
+
+  def cqlCreate: String = "CREATE KEYSPACE IF NOT EXISTS %s WITH REPLICATION = {%s} %s".format(
+    keyspace
+    , replication.map(t => "'"+t._1+"':'"+t._2+"'").mkString(", ")
+    , if (!durableWrites) "AND DURABLE_WRITES = false" else ""
+  )
+
+  def cqlDrop: String = s"DROP KEYSPACE IF EXISTS $keyspace"
+
+  private def execute(cql: String): Unit = {
+    Cluster().execute(cql)
+  }
+
+  def create(): Unit = execute(cqlCreate)
+
+  def drop(): Unit = execute(cqlDrop)
 
 }

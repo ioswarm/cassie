@@ -45,7 +45,10 @@ object Cluster {
   def apply(): Connection = apply("")
   def apply(keyspace: String): Connection = {
     if (cluster.isClosed) cluster = buildCluster()
-    if (!connections.contains(keyspace)) connections += keyspace -> Connection(keyspace)
+    if (!connections.contains(keyspace)) {
+      if (keyspace.nonEmpty) StatementBuilder.keyspace(keyspace).create()
+      connections += keyspace -> Connection(keyspace)
+    }
     connections(keyspace)
   }
 
@@ -56,11 +59,15 @@ object Cluster {
 
   def registerType[T <: TypeCodec[_]](t: T): Unit = codecRegistry.register(t)
 
-  case class Connection(keyspace: String = "") {
+  def activeConnectionSize: Int = connections.count(!_._2.isClosed)
+
+  def activeConnections: Seq[Connection] = connections.filter(!_._2.isClosed).values.toSeq
+
+  sealed case class Connection(keyspace: String = "") {
 
     val session: Session = if (keyspace.length > 0) Cluster.cluster.connect(keyspace) else Cluster.cluster.connect()
 
-    def closed: Boolean = session.isClosed
+    def isClosed: Boolean = session.isClosed
 
     def close(): Unit = {
       if (!session.isClosed) session.close()
