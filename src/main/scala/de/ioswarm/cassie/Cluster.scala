@@ -16,7 +16,7 @@ object Cluster {
 
   sys addShutdownHook close()
 
-  private var connections: Map[String, Connection] = Map.empty[String, Connection]
+  private var connections: Map[Keyspace, Connection] = Map.empty[Keyspace, Connection]
 
   private[cassie] val settings = new Settings(ConfigFactory.load())
   val codecRegistry = new CodecRegistry
@@ -42,18 +42,18 @@ object Cluster {
     }
   }
 
-  def apply(): Connection = apply("")
-  def apply(keyspace: String): Connection = {
+  def apply(): Connection = apply(Keyspace())
+  def apply(keyspace: Keyspace): Connection = {
     if (cluster.isClosed) cluster = buildCluster()
     if (!connections.contains(keyspace)) {
-      if (keyspace.nonEmpty) StatementBuilder.keyspace(keyspace).create()
+      if (!keyspace.isRoot) keyspace.create()
       connections += keyspace -> Connection(keyspace)
     }
     connections(keyspace)
   }
 
   def connect(): Connection = apply()
-  def connect(keyspace: String): Connection = apply(keyspace)
+  def connect(keyspace: Keyspace): Connection = apply(keyspace)
 
   def typeCodec(keyspace: String, name: String): TypeCodec[UDTValue] = codecRegistry.codecFor(cluster.getMetadata.getKeyspace(keyspace).getUserType(name))
 
@@ -63,9 +63,11 @@ object Cluster {
 
   def activeConnections: Seq[Connection] = connections.filter(!_._2.isClosed).values.toSeq
 
-  sealed case class Connection(keyspace: String = "") {
+  sealed case class Connection(keyspace: Keyspace = Keyspace()) {
 
-    val session: Session = if (keyspace.length > 0) Cluster.cluster.connect(keyspace) else Cluster.cluster.connect()
+    val session: Session = if (keyspace.isRoot) Cluster.cluster.connect() else Cluster.cluster.connect(keyspace.keyspace)
+
+    private var statements: Map[Int, PreparedStatement] = Map.empty[Int, PreparedStatement]
 
     def isClosed: Boolean = session.isClosed
 
@@ -75,7 +77,11 @@ object Cluster {
     }
 
     @throws[Exception]
-    def prepare(query: String): PreparedStatement = session.prepare(query)
+    def prepare(query: String): PreparedStatement = {
+      if (!statements.contains(query.hashCode))
+        statements += query.hashCode -> session.prepare(query)
+      statements(query.hashCode)
+    }
     @throws[Exception]
     def prepare(statement: RegularStatement): PreparedStatement = session.prepare(statement)
 

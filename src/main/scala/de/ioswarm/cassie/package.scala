@@ -105,6 +105,8 @@ package object cassie extends CassandraFormats {
 
   implicit def stringToColumn(s: String): Column = ColumnDef(s)
 
+  implicit def stringToKeyspace(s: String): Keyspace = Keyspace(s)
+
   def from[K](implicit ct: ClassTag[K]): TypedSelectStatement[K] = StatementBuilder.from(ct)
 
   def from[K](from: String)(implicit ct: ClassTag[K]): TypedSelectStatement[K] = StatementBuilder.from(from)(ct)
@@ -115,6 +117,6 @@ package object cassie extends CassandraFormats {
   def table[T](implicit tbl: Table[T]): TableStatement[T] = StatementBuilder.table(tbl)
 
 
-  def keyspace(keyspace: String): KeyspaceBuilder = StatementBuilder.keyspace(keyspace)
+  def keyspace(keyspace: String): Keyspace = Keyspace(keyspace)
 
 }
