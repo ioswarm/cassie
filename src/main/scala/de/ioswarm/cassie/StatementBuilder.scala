@@ -69,9 +69,9 @@ case class SelectStatement(keyspace: Option[String], table: String, columns: Seq
     for (pval <- condition.map(tc => tc.paramValues).getOrElse(Seq.empty[ValueExpression[_]]))
       pval.write(Settable(bstmt))
 
-    import scala.collection.JavaConversions._
+    import scala.collection.JavaConverters._
 
-    connection.execute(bstmt).map(r => f(Gettable(r))).toVector
+    connection.execute(bstmt).asScala.map(r => f(Gettable(r))).toVector
   }
 
   def head[K]()(implicit connection: Connection, f: QueryReader[K]): K = as[K]()(connection, f).head
@@ -109,9 +109,9 @@ case class TypedSelectStatement[T](keyspace: Option[String], table: Option[Strin
     for (pval <- condition.map(tc => tc.paramValues).getOrElse(Seq.empty[ValueExpression[_]]))
       pval.write(Settable(bstmt))
 
-    import scala.collection.JavaConversions._
+    import scala.collection.JavaConverters._
 
-    connection.execute(bstmt).map(r => f(Gettable(r))).toVector
+    connection.execute(bstmt).asScala.map(r => f(Gettable(r))).toVector
   }
 
   def fetch(implicit connection: Connection, f: QueryReader[T]): Vector[T] = fetch(cql)(connection, f)
@@ -179,9 +179,9 @@ case class TableStatement[T](condition: Option[TerminationCondition])(implicit t
     for (pval <- condition.map(tc => tc.paramValues).getOrElse(Seq.empty[ValueExpression[_]]))
       pval.write(Settable(bstmt))
 
-    import scala.collection.JavaConversions._
+    import scala.collection.JavaConverters._
 
-    connection.execute(bstmt).map(r => tbl(Gettable(r))).toVector
+    connection.execute(bstmt).asScala.map(r => tbl(Gettable(r))).toVector
   }
 
   def fetch(implicit connection: Connection): Vector[T] = fetch(cqlSelect)(connection)

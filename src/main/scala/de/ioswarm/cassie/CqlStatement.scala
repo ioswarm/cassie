@@ -25,14 +25,14 @@ trait CqlStatement {
   }(ex)
 
   def execute[K](implicit connection: Connection, f: QueryReader[K]): Vector[K] = {
-    import scala.collection.JavaConversions._
+    import scala.collection.JavaConverters._
 
-    execute(connection).map(r => f(Gettable(r))).toVector
+    execute(connection).asScala.map(r => f(Gettable(r))).toVector
   }
   def executeAsync[K](implicit connection: Connection, ex: ExecutionContext, f: QueryReader[K]): Future[Vector[K]] = {
-    import scala.collection.JavaConversions._
+    import scala.collection.JavaConverters._
 
-    executeAsync(connection, ex).map(res => res.map(row => f(Gettable(row))).toVector)
+    executeAsync(connection, ex).map(res => res.asScala.map(row => f(Gettable(row))).toVector)
   }
 
   def execute[K](ks: K*)(implicit connection: Connection, f: QueryWriter[K]): Unit = {

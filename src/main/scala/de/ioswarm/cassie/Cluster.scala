@@ -12,7 +12,8 @@ import scala.concurrent.{ExecutionContext, Future}
   * Created by andreas on 20.08.17.
   */
 object Cluster {
-  import scala.collection.JavaConversions._
+
+  import scala.collection.JavaConverters._
 
   sys addShutdownHook close()
 
@@ -26,7 +27,7 @@ object Cluster {
   private def buildCluster() = CasCluster.builder()
     .withRetryPolicy(DefaultRetryPolicy.INSTANCE)
     .withLoadBalancingPolicy(new TokenAwarePolicy(DCAwareRoundRobinPolicy.builder().build()))
-    .addContactPoints(settings.hosts)
+    .addContactPoints(settings.hosts.asJava)
     .withPort(settings.port)
     .withCodecRegistry(codecRegistry)
     .build()
@@ -109,7 +110,7 @@ object Cluster {
   private[cassie] class Settings(config: Config) {
 
     def hosts: List[InetAddress] = if (config.hasPath("cassie.hosts"))
-        config.getStringList("cassie.hosts").map(host => InetAddress.getByName(host)).toList
+        config.getStringList("cassie.hosts").asScala.map(host => InetAddress.getByName(host)).toList
       else
         List(InetAddress.getLocalHost)
 

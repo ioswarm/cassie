@@ -10,7 +10,7 @@ object Result {
   ]
 
 }
-trait Result[+T] extends QueryReader[T] { self =>
+trait Result[T] extends QueryReader[T] { self =>
 
   override def andThen[A](g: (T) => A): QueryReader[A] = new Result[A] { def apply(v1: Gettable): A = g(self.apply(v1)) }
 
