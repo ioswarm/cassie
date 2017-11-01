@@ -13,11 +13,11 @@ object Demo extends App {
 
   import Contact._
 
-  val adr = Address("Alte Dorfstraße 15", "27404", "Zeven", Country("DE", "Deutschland"))
+  val adr = Address("Teststrasse 15", "27000", "Teststadt", Country("DE", "Deutschland"))
 
-  val c1 = Contact(UUID.randomUUID(), "Hannah", None, "Pape", Some(adr))
-  val c2 = Contact(UUID.randomUUID(), "Linus", None, "Pape", Some(adr))
-  val c3 = Contact(UUID.randomUUID(), "Milo", Some("Hans-Wurst"), "Pape", None)
+  val c1 = Contact(UUID.randomUUID(), "Hannah", None, "Testmann", Some(adr))
+  val c2 = Contact(UUID.randomUUID(), "Linus", None, "Testmann", Some(adr))
+  val c3 = Contact(UUID.randomUUID(), "Milo", Some("Hans-Wurst"), "Testmann", None)
 
   table.insert(c1, c2, c3)
 
