@@ -88,7 +88,7 @@ case class TypedColumnDef[T](
   def withColumn(col: Column): Columns = ::(col)
 
   def format: CassandraFormat[T] = cf
-  override def definition: String = name+" "+(if(frozen) "FROZEN " else "")+cf.cqlType+(if (static) " STATIC" else "")
+  override def definition: String = name+" "+(if(frozen || cf.customType) "FROZEN " else "")+cf.cqlType+(if (static) " STATIC" else "")
 }
 
 object Columns {
