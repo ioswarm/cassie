@@ -11,6 +11,9 @@ import java.util.{Date, UUID}
 trait CassandraFormats extends CassandraTupleFormats {
 
   implicit def optionFormat[T](implicit format: CassandraFormat[T]) = new CassandraFormat[Option[T]] {
+
+    override def customType: Boolean = format.customType
+
     override def toCql(t: Option[T]): String = t match {
       case Some(v) => format.toCql(v)
       case None => "null"
