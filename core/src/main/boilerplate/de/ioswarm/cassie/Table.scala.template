@@ -10,6 +10,9 @@ object Table {
   [#def apply[[#T1#],K](keyspace: String, name: String, fin: Function1[[#T1#], K], fout: Function##1[K, Option[Tuple1[[#T1#]]]])([#column1: Column#])(implicit [#cf1: CassandraFormat[T1]#]): Table[K] = new Table1(keyspace, name, fin, fout)([#column1#])([#cf1#])#
   ]
 
+  [#def apply[[#T1#],K](name: String, fin: Function1[[#T1#], K], fout: Function##1[K, Option[Tuple1[[#T1#]]]])([#column1: Column#])(implicit con: Connection, [#cf1: CassandraFormat[T1]#]): Table[K] = new Table1(con.keyspace.keyspace, name, fin, fout)([#column1#])([#cf1#])#
+  ]
+
 }
 trait Table[K] extends Result[K] with Term[K] {
     def keyspace: String

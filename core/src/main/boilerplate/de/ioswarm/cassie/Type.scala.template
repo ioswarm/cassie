@@ -17,6 +17,9 @@ object Type {
   [#def apply[[#T1#], K](keyspace: String, name: String, fin: Function1[[#T1#], K], fout: Function##1[K, Option[Tuple1[[#T1#]]]])([#column1: Column#])(implicit ct: ClassTag[K], [#cf1: CassandraFormat[T1]#]): Type[K] = new Type1(keyspace, name, fin, fout)([#column1#])(ct, [#cf1#])#
   ]
 
+  [#def apply[[#T1#], K](name: String, fin: Function1[[#T1#], K], fout: Function##1[K, Option[Tuple1[[#T1#]]]])([#column1: Column#])(implicit con: Connection, ct: ClassTag[K], [#cf1: CassandraFormat[T1]#]): Type[K] = new Type1(con.keyspace.keyspace, name, fin, fout)([#column1#])(ct, [#cf1#])#
+  ]
+
 }
 
 trait Type[K] extends CassandraFormat[K] {
