@@ -1,7 +1,9 @@
 package de.ioswarm.cassie
 
+import com.datastax.driver.core.ResultSet
 import de.ioswarm.cassie.Cluster.Connection
 
+import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
 
 /**
@@ -160,7 +162,16 @@ case class TableStatement[T](condition: Option[TerminationCondition])(implicit t
 
   def cqlTruncate: String = "TRUNCATE TABLE "+tbl.qualifiedName
 
-  private def execute(cql: String)(implicit connection: Connection): Unit = connection.execute(cql)
+  private def execute(cql: String)(implicit connection: Connection): ResultSet = connection.execute(cql)
+
+  private def execute(cql: String, v: T)(implicit connection: Connection): T = {
+    val pstmt = connection.prepare(cql)
+    val bind = pstmt.bind()
+    val settable = Settable(bind)
+    tbl(v, settable)
+    connection.execute(bind)
+    v
+  }
 
   private def execute(cql: String, vals: Seq[T])(implicit connection: Connection): Seq[T] = {
     val pstmt = connection.prepare(cql)
@@ -171,6 +182,26 @@ case class TableStatement[T](condition: Option[TerminationCondition])(implicit t
       connection.execute(bind)
     }
     vals
+  }
+
+  private def executeAsync(cql: String)(implicit connection: Connection): Future[ResultSet] = connection.executeAsync(cql)
+
+  private def executeAsync(cql: String, v: T)(implicit connection: Connection, ex: ExecutionContext): Future[T] = {
+    val pstmt = connection.prepare(cql)
+    val bind = pstmt.bind()
+    val settable = Settable(bind)
+    tbl(v, settable)
+    connection.executeAsync(bind).map(_ => v)
+  }
+
+  private def executeAsync(cql: String, vals: Seq[T])(implicit connection: Connection, ex: ExecutionContext): Future[Seq[T]] = {
+    val pstmt = connection.prepare(cql)
+    Future.sequence(vals.map{v =>
+      val bind = pstmt.bind()
+      val settable = Settable(bind)
+      tbl(v, settable)
+      connection.executeAsync(bind).map(_ => v)
+    })
   }
 
   private def fetch(stmt: String)(implicit connection: Connection): Vector[T] = {
@@ -194,12 +225,29 @@ case class TableStatement[T](condition: Option[TerminationCondition])(implicit t
   def last(implicit connection: Connection): T = fetch(connection).last
   def lastOption(implicit connection: Connection): Option[T] = fetch(connection).lastOption
 
-  def insert(t: T*)(implicit connection: Connection): Seq[T] = execute(cqlInsert, t)(connection)
+  def insert(t: T)(implicit connection: Connection): T = execute(cqlInsert, t)(connection)
+  def insert(t: T, ts: T*)(implicit connection: Connection): Seq[T] = execute(cqlInsert, t +: ts)(connection)
 
-  def update(t: T*)(implicit connection: Connection): Seq[T] = execute(cqlUpdate, t)(connection)
-  def upsert(t: T*)(implicit connection: Connection): Seq[T] = update(t :_*)(connection)
+  def insertAsync(t: T)(implicit connection: Connection, ex: ExecutionContext): Future[T] = executeAsync(cqlInsert, t)(connection, ex)
+  def insertAsync(t: T, ts: T*)(implicit connection: Connection, ex: ExecutionContext): Future[Seq[T]] = executeAsync(cqlInsert, t +: ts)(connection, ex)
 
-  def delete(t: T*)(implicit connection: Connection): Seq[T] = execute(cqlDelete, t)(connection)
+  def update(t: T)(implicit connection: Connection): T = execute(cqlUpdate, t)(connection)
+  def update(t: T, ts: T*)(implicit connection: Connection): Seq[T] = execute(cqlUpdate, t +: ts)(connection)
+
+  def updateAsync(t: T)(implicit connection: Connection, ex: ExecutionContext): Future[T] = executeAsync(cqlUpdate, t)(connection, ex)
+  def updateAsync(t: T, ts: T*)(implicit connection: Connection, ex: ExecutionContext): Future[Seq[T]] = executeAsync(cqlUpdate, t +: ts)(connection, ex)
+
+  def upsert(t: T)(implicit connection: Connection): T = update(t)(connection)
+  def upsert(t: T, ts: T*)(implicit connection: Connection): Seq[T] = update(t, ts :_*)(connection)
+
+  def upsertAsync(t: T)(implicit connection: Connection, ex: ExecutionContext): Future[T] = updateAsync(t)(connection, ex)
+  def upsertAsync(t: T, ts: T*)(implicit connection: Connection, ex: ExecutionContext): Future[Seq[T]] = updateAsync(t, ts :_*)(connection, ex)
+
+  def delete(t: T)(implicit connection: Connection): T = execute(cqlDelete, t)(connection)
+  def delete(t: T, ts: T*)(implicit connection: Connection): Seq[T] = execute(cqlDelete, t +: ts)(connection)
+
+  def deleteAsync(t: T)(implicit connection: Connection, ex: ExecutionContext): Future[T] = executeAsync(cqlDelete, t)(connection, ex)
+  def deleteAsync(t: T, ts: T*)(implicit connection: Connection, ex: ExecutionContext): Future[Seq[T]] = executeAsync(cqlDelete, t +: ts)(connection, ex)
 
   def create(implicit connection: Connection): Unit = {
     execute(cqlCreate)(connection)

@@ -27,6 +27,10 @@ trait Column extends Columns with Expression with Conditional {
   def frozen(fro: Boolean): Column
   def index(name: String): Column
 
+  def pk(): Column = partitionKey(true)
+  def asc(): Column = clustering(ASC)
+  def desc(): Column = clustering(DESC)
+
   def definition: String = name
 
   def cql: String = name+(alias match {
