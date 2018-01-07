@@ -3,7 +3,8 @@ package de.ioswarm.cassie
 import com.datastax.driver.core.ResultSet
 import de.ioswarm.cassie.Cluster.Connection
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.util.{Failure, Success}
 
 /**
   * Created by andreas on 27.08.17.
@@ -20,9 +21,7 @@ trait CqlStatement {
   def cql: String
 
   def execute(implicit connection: Connection): ResultSet = connection.execute(cql)
-  def executeAsync(implicit connection: Connection, ex: ExecutionContext): Future[ResultSet] = Future{
-    connection.execute(cql)
-  }(ex)
+  def executeAsync(implicit connection: Connection): Future[ResultSet] = connection.executeAsync(cql)
 
   def execute[K](implicit connection: Connection, f: QueryReader[K]): Vector[K] = {
     import scala.collection.JavaConverters._
@@ -32,7 +31,7 @@ trait CqlStatement {
   def executeAsync[K](implicit connection: Connection, ex: ExecutionContext, f: QueryReader[K]): Future[Vector[K]] = {
     import scala.collection.JavaConverters._
 
-    executeAsync(connection, ex).map(res => res.asScala.map(row => f(Gettable(row))).toVector)
+    executeAsync(connection).map(res => res.asScala.map(row => f(Gettable(row))).toVector)
   }
 
   def execute[K](ks: K*)(implicit connection: Connection, f: QueryWriter[K]): Unit = {
@@ -45,9 +44,20 @@ trait CqlStatement {
     }
   }
 
-  def executeAsync[K](ks: K*)(implicit connection: Connection, ex: ExecutionContext, f: QueryWriter[K]): Future[Unit] = Future{
-    execute(ks :_*)(connection, f)
-  }(ex)
+  def executeAsync[K](ks: K*)(implicit connection: Connection, ex: ExecutionContext, f: QueryWriter[K]): Future[Unit] = {
+    val pstmt = connection.prepare(cql)
+    val p = Promise[Unit]
+    Future.sequence(ks.map(k => {
+      val bind = pstmt.bind()
+      val settable = Settable(bind)
+      f(k, settable)
+      connection.executeAsync(bind)
+    })) onComplete {
+      case Success(_) => p.success(Unit)
+      case Failure(e) => p.failure(e)
+    }
+    p.future
+  }
 
   override def toString: String = cql
 

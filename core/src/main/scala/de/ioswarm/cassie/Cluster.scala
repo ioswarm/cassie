@@ -6,7 +6,7 @@ import com.datastax.driver.core.policies.{DCAwareRoundRobinPolicy, DefaultRetryP
 import com.datastax.driver.core.{CodecRegistry, PreparedStatement, RegularStatement, ResultSet, Session, Statement, TypeCodec, UDTValue, Cluster => CasCluster}
 import com.typesafe.config.{Config, ConfigFactory}
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Future, Promise}
 
 /**
   * Created by andreas on 20.08.17.
@@ -66,6 +66,8 @@ object Cluster {
 
   sealed case class Connection(keyspace: Keyspace = Keyspace()) {
 
+    import com.google.common.util.concurrent.{FutureCallback, Futures, ListenableFuture}
+
     val session: Session = if (keyspace.isRoot) Cluster.cluster.connect() else Cluster.cluster.connect(keyspace.keyspace)
 
     private var statements: Map[Int, PreparedStatement] = Map.empty[Int, PreparedStatement]
@@ -77,6 +79,16 @@ object Cluster {
       Cluster.removeConnection(this)
     }
 
+    def toFuture[T](fut: ListenableFuture[T]): Future[T] = {
+      val p = Promise[T]
+      Futures.addCallback(fut, new FutureCallback[T]{
+        override def onSuccess(result: T): Unit = p.success(result)
+
+        override def onFailure(t: Throwable): Unit = p.failure(t)
+      })
+      p.future
+    }
+
     @throws[Exception]
     def prepare(query: String): PreparedStatement = {
       if (!statements.contains(query.hashCode))
@@ -86,24 +98,17 @@ object Cluster {
     @throws[Exception]
     def prepare(statement: RegularStatement): PreparedStatement = session.prepare(statement)
 
-    def prepareAsync(query: String)(implicit ex: ExecutionContext): Future[PreparedStatement] = Future{
-      prepare(query)
-    }(ex)
-    def prepareAsync(statement: RegularStatement)(implicit ex: ExecutionContext): Future[PreparedStatement] = Future{
-      prepare(statement)
-    }(ex)
+    def prepareAsync(query: String): Future[PreparedStatement] = toFuture(session.prepareAsync(query))
+
+    def prepareAsync(statement: RegularStatement): Future[PreparedStatement] = toFuture(session.prepareAsync(statement))
 
     @throws[Exception]
     def execute(query: String): ResultSet = session.execute(query)
     @throws[Exception]
     def execute(statement: Statement): ResultSet = session.execute(statement)
 
-    def executeAsync(query: String)(implicit ex: ExecutionContext): Future[ResultSet] = Future {
-      execute(query)
-    }(ex)
-    def executeAsync(statement: Statement)(implicit ex: ExecutionContext): Future[ResultSet] = Future {
-      execute(statement)
-    }(ex)
+    def executeAsync(query: String): Future[ResultSet] = toFuture(session.executeAsync(query))
+    def executeAsync(statement: Statement): Future[ResultSet] = toFuture(session.executeAsync(statement))
 
   }
 
