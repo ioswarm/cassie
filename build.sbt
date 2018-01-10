@@ -18,13 +18,13 @@ lazy val root = project.in(file("."))
 )
 .dependsOn(
   core
+  , akka
 )
 
 lazy val core = project.in(file("core"))
 .settings(settings)
 .settings(
-  name := "cassie"
-  , libraryDependencies ++= Seq(
+  libraryDependencies ++= Seq(
     lib.cassandra
     , lib.scalaReflect
     , lib.config
@@ -40,6 +40,22 @@ lazy val core = project.in(file("core"))
   spray.boilerplate.BoilerplatePlugin
 )
 
+lazy val akka = project.in(file("akka-stream"))
+.settings(settings)
+.settings(
+  name := "cassie-akka-stream"
+  , libraryDependencies ++= Seq(
+    lib.akkaStream
+
+    , lib.scalaTest
+    , lib.scalaCheck
+    , lib.slf4jTest
+  )
+)
+.dependsOn(
+  core
+)
+
 lazy val lib = new {
   object Version {
     val cassandra = "3.3.2"
@@ -53,6 +69,8 @@ lazy val lib = new {
     val scalaCheck = "1.13.5"
 
     val cassandraUnt = "3.3.0.2"
+
+    val akka = "2.5.8"
   }
 
   val cassandra = "com.datastax.cassandra" % "cassandra-driver-core" % Version.cassandra
@@ -60,6 +78,7 @@ lazy val lib = new {
   val config = "com.typesafe" % "config" % Version.config
   val slf4jAPI = "org.slf4j" % "slf4j-api" % Version.slf4j
 
+  val akkaStream = "com.typesafe.akka" %% "akka-stream" % Version.akka
 
   val scalaTest = "org.scalatest" %% "scalatest" % Version.scalaTest % "test"
   val scalaCheck = "org.scalacheck" %% "scalacheck" % Version.scalaCheck % "test"
