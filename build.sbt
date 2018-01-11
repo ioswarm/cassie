@@ -16,7 +16,7 @@ lazy val root = project.in(file("."))
 .settings(
   name := "cassie-project"
 )
-.dependsOn(
+.aggregate(
   core
   , akka
 )
@@ -24,7 +24,8 @@ lazy val root = project.in(file("."))
 lazy val core = project.in(file("core"))
 .settings(settings)
 .settings(
-  libraryDependencies ++= Seq(
+  name := "cassie"
+  , libraryDependencies ++= Seq(
     lib.cassandra
     , lib.scalaReflect
     , lib.config
@@ -41,20 +42,20 @@ lazy val core = project.in(file("core"))
 )
 
 lazy val akka = project.in(file("akka-stream"))
-.settings(settings)
-.settings(
-  name := "cassie-akka-stream"
-  , libraryDependencies ++= Seq(
-    lib.akkaStream
+  .settings(settings)
+  .settings(
+    name := "cassie-akka-stream"
+    , libraryDependencies ++= Seq(
+      lib.akkaStream
 
-    , lib.scalaTest
-    , lib.scalaCheck
-    , lib.slf4jTest
+      , lib.scalaTest
+      , lib.scalaCheck
+      , lib.slf4jTest
+    )
   )
-)
-.dependsOn(
-  core
-)
+  .dependsOn(
+    core
+  )
 
 lazy val lib = new {
   object Version {
