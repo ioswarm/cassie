@@ -4,7 +4,7 @@ import java.net.InetAddress
 import java.nio.ByteBuffer
 import java.sql.{Time, Timestamp, Date => SQLDate}
 import java.text.SimpleDateFormat
-import java.time.ZoneId
+import java.time.{Instant, ZoneId}
 import java.util.{Date, UUID}
 
 import com.datastax.driver.core.LocalDate
@@ -34,6 +34,16 @@ trait CassandraBasicFormats {
     override def write(name: String, t: Timestamp, stmt: Settable): Settable = stmt.setTimestamp(name, new Date(t.getTime))
 
     override def write(index: Int, t: Timestamp, stmt: Settable): Settable = stmt.setTimestamp(index, new Date(t.getTime))
+  }
+
+  implicit def instantFormat = new CassandraBasicFormat[Instant]("timestamp") {
+    override def read(index: Int, stmt: Gettable): Instant = Instant.ofEpochMilli(stmt.getTimestamp(index).getTime)
+
+    override def read(name: String, stmt: Gettable): Instant = Instant.ofEpochMilli(stmt.getTimestamp(name).getTime)
+
+    override def write(name: String, t: Instant, stmt: Settable): Settable = stmt.setTimestamp(name, Date.from(t))
+
+    override def write(index: Int, t: Instant, stmt: Settable): Settable = stmt.setTimestamp(index, Date.from(t))
   }
 
   implicit def varintFormat = new CassandraBasicFormat[BigInt]("varint") {
