@@ -87,7 +87,7 @@ trait CassandraBasicFormats {
     override def write(index: Int, t: Array[Byte], stmt: Settable): Settable = stmt.setBytes(index, ByteBuffer.wrap(t))
   }
 
-  implicit def bytebufferFormat = new CassandraBasicFormat[ByteBuffer]("blod") {
+  implicit def bytebufferFormat = new CassandraBasicFormat[ByteBuffer]("blob") {
     override def toCql(t: ByteBuffer): String = t.toHex
 
     override def read(index: Int, stmt: Gettable): ByteBuffer = stmt.getBytes(index)
