@@ -46,9 +46,9 @@ trait CassandraCollectionFormats extends CassandraBasicFormats {
 
     override def cqlType: String = "map<"+kformat.cqlType+", "+vformat.cqlType+">"
 
-    override def read(index: Int, stmt: Gettable): Map[K, V] = stmt.getMap(index, ctk.runtimeClass, ctv.runtimeClass).asScala.asInstanceOf[Map[K,V]]
+    override def read(index: Int, stmt: Gettable): Map[K, V] = stmt.getMap(index, ctk.runtimeClass, ctv.runtimeClass).asScala.toMap.asInstanceOf[Map[K,V]]
 
-    override def read(name: String, stmt: Gettable): Map[K, V] = stmt.getMap(name, ctk.runtimeClass, ctv.runtimeClass).asScala.asInstanceOf[Map[K,V]]
+    override def read(name: String, stmt: Gettable): Map[K, V] = stmt.getMap(name, ctk.runtimeClass, ctv.runtimeClass).asScala.toMap.asInstanceOf[Map[K,V]]
 
     override def write(name: String, t: Map[K, V], stmt: Settable): Settable = stmt.setMap(name, t.asJava)
 
