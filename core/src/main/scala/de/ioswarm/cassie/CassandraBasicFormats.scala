@@ -69,7 +69,7 @@ trait CassandraBasicFormats {
   }
 
   implicit def bytearrayFormat = new CassandraBasicFormat[Array[Byte]]("blob") {
-    override def toCql(t: Array[Byte]): String = t.toHex
+// TODO   override def toCql(t: Array[Byte]): String = t.toHex
 
     def byteBufferToByteArray(buf: ByteBuffer): Array[Byte] = {
       buf.clear()
@@ -88,7 +88,7 @@ trait CassandraBasicFormats {
   }
 
   implicit def bytebufferFormat = new CassandraBasicFormat[ByteBuffer]("blob") {
-    override def toCql(t: ByteBuffer): String = t.toHex
+// TODO    override def toCql(t: ByteBuffer): String = t.toHex
 
     override def read(index: Int, stmt: Gettable): ByteBuffer = stmt.getBytes(index)
 

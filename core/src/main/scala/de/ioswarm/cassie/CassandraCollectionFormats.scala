@@ -12,11 +12,11 @@ trait CassandraCollectionFormats extends CassandraBasicFormats {
 
     override def toCql(t: List[V]): String = t.map(v => format.toCql(v)).mkString("[", ", ", "]")
 
-    override def cqlType: String = "list<"+format+">"
+    override def cqlType: String =  "list<"+(if (format.customType) "FROZEN " else "")+format.cqlType+">"
 
-    override def read(index: Int, stmt: Gettable): List[V] = stmt.getList(index, ct.runtimeClass).asScala.asInstanceOf[List[V]]
+    override def read(index: Int, stmt: Gettable): List[V] = stmt.getList(index, ct.runtimeClass).asScala.toList.asInstanceOf[List[V]]
 
-    override def read(name: String, stmt: Gettable): List[V] = stmt.getList(name, ct.runtimeClass).asScala.asInstanceOf[List[V]]
+    override def read(name: String, stmt: Gettable): List[V] = stmt.getList(name, ct.runtimeClass).asScala.toList.asInstanceOf[List[V]]
 
     override def write(name: String, t: List[V], stmt: Settable): Settable = stmt.setList(name, t.asJava)
 
@@ -28,11 +28,11 @@ trait CassandraCollectionFormats extends CassandraBasicFormats {
 
     override def toCql(t: Set[V]): String = t.map(v => format.toCql(v)).mkString("{", ", ", "}")
 
-    override def cqlType: String = "set<"+format.cqlType+">"
+    override def cqlType: String = "set<"+(if (format.customType) "FROZEN " else "")+format.cqlType+">"
 
-    override def read(index: Int, stmt: Gettable): Set[V] = stmt.getSet(index, ct.runtimeClass).asScala.asInstanceOf[Set[V]]
+    override def read(index: Int, stmt: Gettable): Set[V] = stmt.getSet(index, ct.runtimeClass).asScala.toSet.asInstanceOf[Set[V]]
 
-    override def read(name: String, stmt: Gettable): Set[V] = stmt.getSet(name, ct.runtimeClass).asScala.asInstanceOf[Set[V]]
+    override def read(name: String, stmt: Gettable): Set[V] = stmt.getSet(name, ct.runtimeClass).asScala.toSet.asInstanceOf[Set[V]]
 
     override def write(name: String, t: Set[V], stmt: Settable): Settable = stmt.setSet(name, t.asJava)
 
@@ -44,7 +44,7 @@ trait CassandraCollectionFormats extends CassandraBasicFormats {
 
     override def toCql(t: Map[K, V]): String = t.map(e => kformat.toCql(e._1)+": "+vformat.toCql(e._2)).mkString("{", ", ", "}")
 
-    override def cqlType: String = "map<"+kformat.cqlType+", "+vformat.cqlType+">"
+    override def cqlType: String = "map<"+(if (kformat.customType) "FROZEN " else "")+kformat.cqlType+", "+(if (vformat.customType) "FROZEN " else "")+vformat.cqlType+">"
 
     override def read(index: Int, stmt: Gettable): Map[K, V] = stmt.getMap(index, ctk.runtimeClass, ctv.runtimeClass).asScala.toMap.asInstanceOf[Map[K,V]]
 
